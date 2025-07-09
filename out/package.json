@@ -1,0 +1,28 @@
+{
+  "name": "clean-occjs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./occjs.d.ts",
+      "default": "./occjs.js"
+    }
+  },
+  "scripts": {
+    "build": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts && cp package.json out/",
+    "bundle": "node build.js",
+    "bundle:watch": "node build.js --watch",
+    "minify": "node build.js --minify"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "ts-morph": "^26.0.0",
+    "typescript": "~5.8.3"
+  },
+  "dependencies": {
+    "@types/node": "^24.0.7",
+    "opencascade.js": "^2.0.0-beta.b5ff984",
+    "tsx": "^4.20.3"
+  }
+}
