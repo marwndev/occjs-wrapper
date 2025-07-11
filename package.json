@@ -1,24 +1,17 @@
 {
-  "name": "occjs-wrapper",
-  "private": true,
-  "version": "2.0.0-beta.b5ff984-1",
-  "type": "module",
-  "exports": {
-    ".": {
-      "types": "./occjs.d.ts",
-      "default": "./occjs.js"
+    "name": "occjs-wrapper",
+    "version": "2.0.0-beta.b5ff984-1",
+    "author": "Marwan Aouida <contact@marwan.dev>",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.7",
+        "ts-morph": "^26.0.0",
+        "tsx": "^4.20.3",
+        "typescript": "~5.8.3"
     }
-  },
-  "scripts": {
-    "build": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts && cp package.json out/"
-  },
-  "devDependencies": {
-    "ts-morph": "^26.0.0",
-    "typescript": "~5.8.3"
-  },
-  "dependencies": {
-    "@types/node": "^24.0.7",
-    "opencascade.js": "^2.0.0-beta.b5ff984",
-    "tsx": "^4.20.3"
-  }
 }

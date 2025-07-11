@@ -1,8 +1,7 @@
 import { ClassDeclarationStructure, IntersectionTypeNode, MethodDeclarationStructure, ModuleKind, ModuleResolutionKind, OptionalKind, Project, PropertySignature, Scope, ScriptTarget, SourceFile, SyntaxKind, TypeAliasDeclaration, TypeLiteralNode } from "ts-morph";
 import { rmSync } from "fs";
-import { error } from "console";
 
-const OUT_DIR = "./out";
+const OUT_DIR = "./dist";
 const OVERLOAD_NAME_REGEX = /_\d+$/;
 
 const targetProject = new Project({
@@ -45,26 +44,14 @@ const StandardTypes = [
 ];
 
 function main() {
-    rmSync(OUT_DIR, { recursive: true, force: true });
+    rmSync(`${OUT_DIR}/occjs.js`, { force: true });
+    rmSync(`${OUT_DIR}/occjs.d.ts`, { force: true });
 
     const project = new Project();
 
-    const sourceFile = project.addSourceFileAtPath("node_modules/opencascade.js/dist/opencascade.full.d.ts");
+    const sourceFile = project.addSourceFileAtPath("lib/opencascade.full.d.ts");
 
     const mainFile = targetProject.createSourceFile("occjs.ts", "", { overwrite: true });
-
-    mainFile.addImportDeclarations([{
-        moduleSpecifier: "opencascade.js",
-        defaultImport: "originalInitOpenCascade",
-    },
-    {
-        moduleSpecifier: "opencascade.js",
-        namedImports: [{
-            name: "OpenCascadeInstance",
-            alias: "OriginOpenCascadeInstance",
-        }],
-        isTypeOnly: true,
-    }]);
 
     const typeAliases = sourceFile.getTypeAliases().map(typeAlias => ({ typeAlias, kind: typeAlias.getTypeNode().getKind() }));
     const enumTypeAliases = typeAliases.filter(typeAlias => typeAlias.kind === SyntaxKind.TypeLiteral);
@@ -248,23 +235,6 @@ function main() {
         `
     });
 
-    mainFile.addFunction({
-        name: "initOpenCascade",
-        isDefaultExport: true,
-        isAsync: true,
-        parameters: [{
-            name: "settings",
-            type: "{ mainJS?: typeof originalInitOpenCascade; mainWasm?: string; worker?: string; libs?: string[]; module?: Record<string, any>; }",
-            hasQuestionToken: true,
-        }],
-        returnType: "Promise<OpenCascadeInstance>",
-        statements: writer => {
-            writer.writeLine("const origin = await originalInitOpenCascade(settings);");
-            writer.writeLine("const instance = new OpenCascadeInstance(origin);");
-            writer.writeLine("return instance;");
-        },
-    })
-
     console.log('Emitting...')
     setImmediate(async () => {
         targetProject.emit();
@@ -358,7 +328,7 @@ function processTypeAliases(typeAliases: TypeAliasDeclaration[], classResults: O
                     parameters: [{
                         scope: Scope.Public,
                         name: "origin",
-                        type: "OriginOpenCascadeInstance",
+                        type: "any",
                     }],
                     statements: writer => {
                         writer.writeLine('this.origin = origin;');
