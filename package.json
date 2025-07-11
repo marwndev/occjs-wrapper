@@ -10,12 +10,16 @@
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "scripts": {
-        "build": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts"
+        "build": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts && npm run minify",
+        "minify": "npx terser dist/occjs.js --module --mangle --compress -o dist/occjs.js"
     },
     "devDependencies": {
         "@types/node": "^24.0.7",
         "ts-morph": "^26.0.0",
         "tsx": "^4.20.3",
         "typescript": "~5.8.3"
+    },
+    "dependencies": {
+        "terser": "^5.43.1"
     }
 }
