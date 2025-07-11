@@ -31,4 +31,18 @@ import initOpenCascade from 'occjs-wrapper.js';
 import { gp_Pnt } from 'occjs-wrapper.js';
 
 ```
+Node:
+
+```javascript
+import initOpenCascade from 'occjs-wrapper.js/dist/node.js';
+
+```
+
+## Installation
+You can install the library using npm:
+
+```bash
+npm install occjs-wrapper
+```
+
 It would be cool to make this part of the original library, but it'll require some time and effort to integrate it which currently I do not have. If anyone is interested in contributing to the original library, please feel free to do so.
