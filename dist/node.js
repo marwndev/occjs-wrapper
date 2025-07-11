@@ -12,7 +12,7 @@ import ocFullJS from "../lib/opencascade.full.js";
 
 const initOpenCascade = ({
     mainJS = ocFullJS,
-    mainWasm = `${globalThis.__dirname}/opencascade.full.wasm`,
+    mainWasm = `${globalThis.__dirname}/../lib/opencascade.full.wasm`,
     worker = undefined,
     libs = [],
     module = {},
