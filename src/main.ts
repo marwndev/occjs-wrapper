@@ -444,6 +444,7 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                 const ctor = constructors[i];
                 newClass.methods.push({
                     name: `__determine_ctor_overload_${i}`,
+                    scope: Scope.Private,
                     statements: writer => {
                         if (ctor.params.length === 0) {
                             writer.writeLine(`const match = arguments.length === 0;`);
