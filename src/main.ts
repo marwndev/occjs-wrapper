@@ -127,7 +127,7 @@ function main() {
                     const oc = this.getOC();
                     const args = Array.from(arguments);
                     for (let i = 0; i < constructorsCount; i++) {
-                        const key = "__determine_ctor_overload_" + i;
+                        const key = "__determine_ctor_overload_" + className + "_" + i;
                         const overloadType = this[key].apply(this, args);
                         if (overloadType) {
                             const typeInializer = oc[overloadType];
@@ -443,7 +443,7 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
             for (let i = 0; i < constructors.length; i++) {
                 const ctor = constructors[i];
                 newClass.methods.push({
-                    name: `__determine_ctor_overload_${i}`,
+                    name: `__determine_ctor_overload_${newClass.name}_${i}`,
                     scope: Scope.Private,
                     statements: writer => {
                         if (ctor.params.length === 0) {
