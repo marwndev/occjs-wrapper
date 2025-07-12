@@ -10,6 +10,7 @@
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "scripts": {
+        "build:dev": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts",
         "build": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts && npm run minify",
         "minify": "npx terser dist/occjs.js --module --mangle --compress -o dist/occjs.js"
     },

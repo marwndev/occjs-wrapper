@@ -83,8 +83,6 @@ function main() {
 
     const typeAliasResults = processTypeAliases(typeAliases.map(t => t.typeAlias), classResults);
 
-    addMissingTypeDefinitions(mainFile);
-
     mainFile.addClasses(typeAliasResults.classes);
 
     mainFile.addFunction({
@@ -240,22 +238,6 @@ function main() {
         targetProject.emit();
         console.log('Done!');
     });
-}
-
-function addMissingTypeDefinitions(sourceFile: SourceFile) {
-    // Graphic3d_ZLayerId enum
-    // sourceFile.addClass({
-    //     name: "Graphic3d_ZLayerId",
-    //     isExported: true,
-    //     properties: [
-    //         { name: "Graphic3d_ZLayerId_UNKNOWN", type: "{}" },
-    //         { name: "Graphic3d_ZLayerId_Default", type: "{}" },
-    //         { name: "Graphic3d_ZLayerId_Top", type: "{}" },
-    //         { name: "Graphic3d_ZLayerId_TopMost", type: "{}" },
-    //         { name: "Graphic3d_ZLayerId_TopOSD", type: "{}" },
-    //         { name: "Graphic3d_ZLayerId_BotOSD", type: "{}" },
-    //     ]
-    // })
 }
 
 function getPrimitiveFromStandardType(type: string) {
@@ -450,7 +432,8 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                             writer.writeLine(`const match = arguments.length === 0;`);
                         }
                         else {
-                            writer.writeLine(`const match = (${ctor.params.length} === arguments.length) && (${ctor.params.map((p, paramIndex) => `_wrap_primitive_type(arguments[${paramIndex}]) instanceof(${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
+                            writer.writeLine('const __oc = this.getOC();');
+                            writer.writeLine(`const match = (${ctor.params.length} === arguments.length) && (${ctor.params.map((p, paramIndex) => `_wrap_primitive_type(arguments[${paramIndex}]) instanceof(${isEnum(p.type as string) ? "__oc.":""}${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
                         }
 
                         writer.writeLine(`return match ? "${ctor.name}":0;`);
@@ -474,7 +457,6 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                     })),
                 })),
             });
-
         }
         else {
             newClass.ctors = newClass.ctors || [];
@@ -487,6 +469,15 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                     if (arguments.length === 1 && Object.keys(arguments[0])[0] === "__from") {
                         this._overload = arguments[0].__from;
                         return;
+                    }
+                    else if (arguments.length === 0) {
+                        // class may be abstract so an error may be thrown
+                        try {
+                            const oc = this.getOC();
+                            this._overload = new oc.${newClass.name}();
+                        }
+                        catch (e) {
+                        }
                     }
                    `);
                 },
@@ -521,10 +512,11 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                     name: `__determine_method_overload_${baseName}_${i}`,
                     isStatic: method.isStatic,
                     statements: writer => {
+                        writer.writeLine(`const __oc = ${newClass.name}.prototype.getOC();`);
                         if (params.length === 0) {
                             writer.writeLine(`const match = arguments.length === 0;`);
                         } else {
-                            writer.writeLine(`const match = (${params.length} === arguments.length) || (${params.map(p => `_wrap_primitive_type(arguments[${i}]) instanceof(${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
+                            writer.writeLine(`const match = (${params.length} === arguments.length) || (${params.map(p => `_wrap_primitive_type(arguments[${i}]) instanceof(${isEnum(p.type as string) ? "__oc.":""}${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
                         }
 
                         writer.writeLine(`return match ? "${method.name}":0;`);
