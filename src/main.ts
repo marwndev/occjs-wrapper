@@ -476,11 +476,11 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                         this._overload = arguments[0].__from;
                         return;
                     }
-                    else if (arguments.length === 0) {
+                    else {
                         // class may be abstract so an error may be thrown
                         try {
                             const oc = this.getOC();
-                            this._overload = new oc.${newClass.name}();
+                            this._overload = new oc.${newClass.name}(...Array.from(arguments).map(a => a._overload || a));
                         }
                         catch (e) {
                         }
