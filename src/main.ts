@@ -63,7 +63,7 @@ function main() {
     };
 
     const isPrimitiveOrStandardOrEnum = (type: string) => {
-        return PrimitiveTypes.includes(type) || StandardTypes.includes(type) || isEnum(type) 
+        return PrimitiveTypes.includes(type) || StandardTypes.includes(type) || isEnum(type)
     }
 
     mainFile.addExportDeclaration({
@@ -376,7 +376,6 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
         }
     }
 
-
     const baseClasses = allClasses.filter(c => !c.extends);
 
     const classInfos: ClassInfo[] = [];
@@ -433,7 +432,7 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                         }
                         else {
                             writer.writeLine('const __oc = this.getOC();');
-                            writer.writeLine(`const match = (${ctor.params.length} === arguments.length) && (${ctor.params.map((p, paramIndex) => `_wrap_primitive_type(arguments[${paramIndex}]) instanceof(${isEnum(p.type as string) ? "__oc.":""}${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
+                            writer.writeLine(`const match = (${ctor.params.length} === arguments.length) && (${ctor.params.map((p, paramIndex) => `_wrap_primitive_type(arguments[${paramIndex}]) instanceof(${isEnum(p.type as string) ? "__oc." : ""}${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
                         }
 
                         writer.writeLine(`return match ? "${ctor.name}":0;`);
@@ -461,6 +460,13 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
         else {
             newClass.ctors = newClass.ctors || [];
             newClass.ctors.push({
+                overloads: clsInfo.class.ctors.map(c => ({
+                    parameters: c.parameters.map(p => ({
+                        name: p.name === "eval" ? "_eval" : p.name, // avoid using eval as a parameter name
+                        type: p.type,
+                        hasQuestionToken: p.hasQuestionToken,
+                    })),
+                })),
                 statements: writer => {
                     if (newClass.extends) {
                         writer.writeLine(`super();`);
@@ -516,7 +522,7 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                         if (params.length === 0) {
                             writer.writeLine(`const match = arguments.length === 0;`);
                         } else {
-                            writer.writeLine(`const match = (${params.length} === arguments.length) || (${params.map(p => `_wrap_primitive_type(arguments[${i}]) instanceof(${isEnum(p.type as string) ? "__oc.":""}${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
+                            writer.writeLine(`const match = (${params.length} === arguments.length) || (${params.map(p => `_wrap_primitive_type(arguments[${i}]) instanceof(${isEnum(p.type as string) ? "__oc." : ""}${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
                         }
 
                         writer.writeLine(`return match ? "${method.name}":0;`);
@@ -608,10 +614,10 @@ function processMethods(classInfo: ClassInfo, targetClassDeclaration: OptionalKi
 
                 writer.writeLine(`const __oc = ${classInfo.class.name}.prototype.getOC();`);
                 if (isStatic) {
-                    writer.write(`return __determine_method_overload_static(__oc, ${classInfo.class.name}, "${classInfo.class.name}", ${methods.length}, "${baseName}", "${hasReturnType ? returnType : ""}", ${isEnum(returnType) ? "__oc.":""}${hasReturnType ? getPrimitiveFromStandardType(returnType) : null}, ${isPrimitiveOrStandardOrEnum(returnType)}).apply(this, arguments);`);
+                    writer.write(`return __determine_method_overload_static(__oc, ${classInfo.class.name}, "${classInfo.class.name}", ${methods.length}, "${baseName}", "${hasReturnType ? returnType : ""}", ${isEnum(returnType) ? "__oc." : ""}${hasReturnType ? getPrimitiveFromStandardType(returnType) : null}, ${isPrimitiveOrStandardOrEnum(returnType)}).apply(this, arguments);`);
                 }
                 else {
-                    writer.write(`return __determine_method_overload(${methods.length}, "${baseName}", "${hasReturnType ? returnType : ""}", ${isEnum(returnType) ? "__oc.":""}${hasReturnType ? getPrimitiveFromStandardType(returnType) : null}, ${isPrimitiveOrStandardOrEnum(returnType)}).apply(this, arguments);`);
+                    writer.write(`return __determine_method_overload(${methods.length}, "${baseName}", "${hasReturnType ? returnType : ""}", ${isEnum(returnType) ? "__oc." : ""}${hasReturnType ? getPrimitiveFromStandardType(returnType) : null}, ${isPrimitiveOrStandardOrEnum(returnType)}).apply(this, arguments);`);
                 }
             }
         });
