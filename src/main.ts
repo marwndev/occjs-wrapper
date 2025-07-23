@@ -522,7 +522,7 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                         if (params.length === 0) {
                             writer.writeLine(`const match = arguments.length === 0;`);
                         } else {
-                            writer.writeLine(`const match = (${params.length} === arguments.length) || (${params.map(p => `_wrap_primitive_type(arguments[${i}]) instanceof(${isEnum(p.type as string) ? "__oc." : ""}${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
+                            writer.writeLine(`const match = (${params.length} === arguments.length) && (${params.map((p, pi) => `_wrap_primitive_type(arguments[${pi}]) instanceof(${isEnum(p.type as string) ? "__oc." : ""}${getPrimitiveFromStandardType(p.type as string)})`).join(" && ")})`);
                         }
 
                         writer.writeLine(`return match ? "${method.name}":0;`);
