@@ -72,6 +72,13 @@ function main() {
         namedExports: enumNames
     });
 
+    mainFile.addVariableStatement({
+        declarations: [{
+            name: "classRegistry",
+            initializer: "new Map<string, any>()",
+        }],
+    });
+
     const classResults = processClasses(sourceFile, isPrimitiveOrStandardOrEnum, isEnum);
 
     mainFile.addClasses(classResults);
@@ -84,6 +91,12 @@ function main() {
     const typeAliasResults = processTypeAliases(typeAliases.map(t => t.typeAlias), classResults);
 
     mainFile.addClasses(typeAliasResults.classes);
+
+    mainFile.addStatements(classResults.map(cls => {
+        return writer => {
+            writer.writeLine(`classRegistry.set("${cls.name}", ${cls.name});`);
+        }
+    }));
 
     mainFile.addFunction({
         name: "_wrap_primitive_type",
@@ -443,10 +456,48 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
             newClass.ctors = newClass.ctors || [];
             newClass.ctors.push({
                 statements: writer => {
+                    writer.writeLine(`${newClass.extends ? `super();` : ""}`);
+                    writer.writeLine(`__determine_ctor_overload("${newClass.name}", ${constructors.length}).apply(this, arguments);`);
                     writer.write(`
-                    ${newClass.extends ? `super();` : ""}
-                    __determine_ctor_overload("${newClass.name}", ${constructors.length}).apply(this, arguments);
-                   `);
+                    const proxy = new Proxy(this, {
+                        get(target, prop, receiver) {
+                            if (prop in target) {
+                                return Reflect.get(target, prop, receiver);
+                            }
+
+                            if (!target._overload) {
+                                console.warn('No overload found for property:', target, ${newClass.name}, prop);
+                                return undefined;
+                            }
+        
+                            if (typeof prop === 'string' && prop in target._overload) {
+                                return function(...args) {
+                                    const result = target._overload[prop].apply(target._overload, args);
+                                    if (!result) {
+                                        return undefined;
+                                    }
+
+                                    const returnType = result.constructor?.name;
+                                    if (!returnType) {
+                                        return result;
+                                    }
+
+                                    const normalizedReturnType = returnType.replace(/_\d+$/, "");
+                                    const clsType = classRegistry.get(normalizedReturnType);
+                                    if (clsType) {
+                                        return new clsType({ __from: result });
+                                    }
+
+                                    return result;
+                                    
+                                }
+                            }
+        
+                            return undefined;
+                        }
+                    });
+                    `)
+                    writer.writeLine(`return proxy;`);
                 },
                 overloads: constructors.map(c => ({
                     parameters: c.params.map(p => ({

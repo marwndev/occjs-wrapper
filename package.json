@@ -1,6 +1,6 @@
 {
     "name": "occjs-wrapper",
-    "version": "2.0.0-beta.b5ff984-10",
+    "version": "2.0.0-beta.b5ff984-11",
     "author": "Marwan Aouida <contact@marwan.dev>",
     "repository": {
         "type": "git",
@@ -12,7 +12,8 @@
     "scripts": {
         "build:dev": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts",
         "build": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts && npm run minify",
-        "minify": "npx terser dist/occjs.js --module --mangle --compress -o dist/occjs.js"
+        "minify": "npx terser dist/occjs.js --module --mangle --compress -o dist/occjs.js",
+        "publish": "npm run build && npm publish"
     },
     "devDependencies": {
         "@types/node": "^24.0.7",
