@@ -40,7 +40,8 @@ const StandardTypes = [
     "Standard_Byte",
     "Standard_Size",
     "Standard_Character",
-    "Standard_CString"
+    "Standard_CString",
+    "Graphic3d_ZLayerId",
 ];
 
 function main() {
@@ -59,7 +60,7 @@ function main() {
     const primitiveTypeAliases = typeAliases.filter(typeAlias => typeAlias.kind === SyntaxKind.StringKeyword || typeAlias.kind === SyntaxKind.NumberKeyword || typeAlias.kind === SyntaxKind.BooleanKeyword);
 
     const isEnum = (type: string) => {
-        return enumNames.includes(type) || type === 'Graphic3d_ZLayerId';
+        return enumNames.includes(type);
     };
 
     const isPrimitiveOrStandardOrEnum = (type: string) => {
@@ -314,6 +315,8 @@ function getPrimitiveFromStandardType(type: string) {
             return "Number";
         case "Standard_CString":
             return "String";
+        case "Graphic3d_ZLayerId":
+            return "Number";
         default:
             return type;
     }
