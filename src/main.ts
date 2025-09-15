@@ -290,7 +290,7 @@ function main() {
                         }
                     }
                 }
-                throw new Error("No matching overload found for method " + baseName);
+                throw new Error("No matching overload found for method " + methodName);
         }
         `
     });
