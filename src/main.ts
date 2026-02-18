@@ -1,4 +1,4 @@
-import { ClassDeclarationStructure, IntersectionTypeNode, MethodDeclarationStructure, ModuleKind, ModuleResolutionKind, OptionalKind, Project, PropertySignature, Scope, ScriptTarget, SourceFile, SyntaxKind, TypeAliasDeclaration, TypeLiteralNode } from "ts-morph";
+import { ClassDeclarationStructure, InterfaceDeclarationStructure, IntersectionTypeNode, MethodDeclarationStructure, ModuleKind, ModuleResolutionKind, OptionalKind, Project, PropertySignature, Scope, ScriptTarget, SourceFile, SyntaxKind, TypeAliasDeclaration, TypeLiteralNode } from "ts-morph";
 import { rmSync } from "fs";
 
 const OUT_DIR = "./dist";
@@ -89,8 +89,9 @@ function main() {
         return s;
     }));
 
-    const typeAliasResults = processTypeAliases(typeAliases.map(t => t.typeAlias), classResults);
+    const typeAliasResults = processTypeAliases(sourceFile, typeAliases.map(t => t.typeAlias), classResults);
 
+    mainFile.addInterfaces(typeAliasResults.interfaces);
     mainFile.addClasses(typeAliasResults.classes);
 
     mainFile.addStatements(classResults.map(cls => {
@@ -317,6 +318,8 @@ function getPrimitiveFromStandardType(type: string) {
             return "String";
         case "Graphic3d_ZLayerId":
             return "Number";
+        case "Standard_OStream":
+            return Object; // nasty fallback. mostly for handling Standard_OStream in some methods
         default:
             return type;
     }
@@ -348,11 +351,13 @@ function prepare(allClasses: ClassDeclarationStructure[], baseClasses: ClassDecl
     }
 }
 
-function processTypeAliases(typeAliases: TypeAliasDeclaration[], classResults: OptionalKind<ClassDeclarationStructure>[]) {
+function processTypeAliases(sourceFile: SourceFile, typeAliases: TypeAliasDeclaration[], classResults: OptionalKind<ClassDeclarationStructure>[]) {
     const result: {
         classes: OptionalKind<ClassDeclarationStructure>[],
+        interfaces: OptionalKind<InterfaceDeclarationStructure>[],
     } = {
         classes: [],
+        interfaces: [],
     };
 
     typeAliases.forEach(typeAlias => {
@@ -365,6 +370,98 @@ function processTypeAliases(typeAliases: TypeAliasDeclaration[], classResults: O
             const intersectionNode = node as IntersectionTypeNode;;
             const intersectionTypes = intersectionNode.getTypeNodes();
             const occType = intersectionTypes[intersectionTypes.length - 1] as TypeLiteralNode;
+            const fsType = intersectionTypes[0];
+
+            // Parse FS namespace and create bindings
+            const fsModule = sourceFile.getModule("FS");
+            let fsClassName: string | undefined;
+
+            if (fsModule) {
+                // Export FS interfaces (FSNode, FSStream, Lookup, etc.)
+                const fsInterfaces = fsModule.getInterfaces();
+                for (const iface of fsInterfaces) {
+                    const structure = iface.getStructure();
+                    structure.isExported = true;
+                    result.interfaces.push(structure);
+                }
+
+                // Get FS functions and group by name (for overloads)
+                const fsFunctions = fsModule.getFunctions();
+                const fsFunctionsByName = new Map<string, typeof fsFunctions>();
+                for (const func of fsFunctions) {
+                    const name = func.getName();
+                    if (!name) continue;
+                    if (!fsFunctionsByName.has(name)) {
+                        fsFunctionsByName.set(name, []);
+                    }
+                    fsFunctionsByName.get(name)!.push(func);
+                }
+
+                // Build FS methods
+                const fsMethods: OptionalKind<MethodDeclarationStructure>[] = [];
+                for (const [name, funcs] of fsFunctionsByName) {
+                    if (funcs.length === 1) {
+                        const func = funcs[0];
+                        const params = func.getParameters();
+                        fsMethods.push({
+                            name,
+                            parameters: params.map(p => ({
+                                name: p.getName(),
+                                type: p.getStructure().type as string || "any",
+                                hasQuestionToken: p.isOptional(),
+                            })),
+                            returnType: func.getStructure().returnType as string || "void",
+                            statements: `return this._fs.${name}(${params.map(p => p.getName()).join(', ')});`,
+                        });
+                    } else {
+                        // Overloaded function - use rest params for the implementation
+                        fsMethods.push({
+                            name,
+                            parameters: [{ name: "args", isRestParameter: true, type: "any[]" }],
+                            returnType: "any",
+                            overloads: funcs.map(f => ({
+                                parameters: f.getParameters().map(p => ({
+                                    name: p.getName(),
+                                    type: p.getStructure().type as string || "any",
+                                    hasQuestionToken: p.isOptional(),
+                                })),
+                                returnType: f.getStructure().returnType as string || "void",
+                            })),
+                            statements: `return this._fs.${name}(...args);`,
+                        });
+                    }
+                }
+
+                // Get FS variables (ignorePermissions, trackingDelegate, etc.)
+                const fsVariables = fsModule.getVariableDeclarations();
+                const fsVarProps = fsVariables.map(v => ({
+                    name: v.getName(),
+                    type: v.getStructure().type as string || "any",
+                }));
+
+                // Create FSType class
+                fsClassName = "FSType";
+                const fsClass: OptionalKind<ClassDeclarationStructure> = {
+                    name: fsClassName,
+                    isExported: true,
+                    properties: [
+                        { name: "_fs", type: "any" },
+                        ...fsVarProps,
+                    ],
+                    ctors: [{
+                        parameters: [{ name: "fs", type: "any" }],
+                        statements: writer => {
+                            writer.writeLine("this._fs = fs;");
+                            for (const prop of fsVarProps) {
+                                writer.writeLine(`this.${prop.name} = fs.${prop.name};`);
+                            }
+                        },
+                    }],
+                    methods: fsMethods,
+                };
+
+                result.classes.push(fsClass);
+            }
 
             const openCascadeInstanceClass: OptionalKind<ClassDeclarationStructure> = {
                 name: "OpenCascadeInstance",
@@ -378,6 +475,9 @@ function processTypeAliases(typeAliases: TypeAliasDeclaration[], classResults: O
                     }],
                     statements: writer => {
                         writer.writeLine('this.origin = origin;');
+                        if (fsClassName) {
+                            writer.writeLine(`this.FS = new ${fsClassName}(this.origin.FS);`);
+                        }
                         writer.writeLine('const getOC = () => { return this.origin; }')
                         for (let cls of classResults) {
                             writer.writeLine(`${cls.name}.prototype['getOC'] = getOC;`);
@@ -385,6 +485,13 @@ function processTypeAliases(typeAliases: TypeAliasDeclaration[], classResults: O
                     }
                 }]
             };
+
+            if (fsClassName) {
+                openCascadeInstanceClass.properties.push({
+                    name: "FS",
+                    type: fsClassName,
+                });
+            }
 
             result.classes.push(openCascadeInstanceClass);
 
@@ -583,6 +690,7 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                 newClass.methods.push({
                     name: `__determine_method_overload_${baseName}_${i}`,
                     isStatic: method.isStatic,
+                    scope: Scope.Private,
                     statements: writer => {
                         writer.writeLine(`const __oc = ${newClass.name}.prototype.getOC();`);
                         if (params.length === 0) {
