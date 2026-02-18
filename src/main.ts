@@ -320,6 +320,8 @@ function getPrimitiveFromStandardType(type: string) {
             return "Number";
         case "Standard_OStream":
             return Object; // nasty fallback. mostly for handling Standard_OStream in some methods
+        case "Standard_IStream":
+            return Object;
         default:
             return type;
     }
