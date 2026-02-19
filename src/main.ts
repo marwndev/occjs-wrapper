@@ -41,6 +41,9 @@ const StandardTypes = [
     "Standard_Size",
     "Standard_Character",
     "Standard_CString",
+    "Standard_ExtString",
+    "Standard_WideChar",
+    "Standard_ExtCharacter",
     "Graphic3d_ZLayerId",
 ];
 
@@ -192,8 +195,32 @@ function main() {
                         const overloadType = this[key].apply(this, args);
                         if (overloadType) {
                             const typeInializer = oc[overloadType];
-                            this._overload = new typeInializer(...args.map(arg => arg._overload || arg));
-                            break;
+                            if (!typeInializer) {
+                                continue;
+                            }
+                            try {
+                                this._overload = new typeInializer(...args.map(arg => arg._overload || arg));
+                                break;
+                            } catch (e) {
+                                console.warn("Constructor overload " + overloadType + " failed:", e.message || e);
+                                continue;
+                            }
+                        }
+                    }
+
+                    if (!this._overload) {
+                        for (let i = 1; i <= constructorsCount; i++) {
+                            const overloadName = className + "_" + i;
+                            const typeInializer = oc[overloadName];
+                            if (!typeInializer) {
+                                continue;
+                            }
+                            try {
+                                this._overload = new typeInializer(...args.map(arg => arg._overload || arg));
+                                break;
+                            } catch (e) {
+                                continue;
+                            }
                         }
                     }
 
@@ -228,14 +255,23 @@ function main() {
                 const args = Array.from(arguments);
                 for (let i = 0; i < methodsCount; i++) {
                     const key = "__determine_method_overload_" + methodName + "_" + i;
+                    if (!this[key]) continue;
                     const overloadType = this[key].apply(this, args);
                     if (overloadType) {
-                        const __result = this._overload[overloadType].apply(this._overload, args.map(arg => arg._overload || arg));
-                        if (returnTypeName && returnTypeName !== "void" && !isPrimitiveOrStandardOrEnum) {
-                            return new returnType({ __from: __result });
+                        const fn = this._overload[overloadType];
+                        if (!fn) {
+                            continue;
                         }
-                        else {
-                            return __result;
+                        try {
+                            const __result = fn.apply(this._overload, args.map(arg => arg._overload || arg));
+                            if (returnTypeName && returnTypeName !== "void" && !isPrimitiveOrStandardOrEnum) {
+                                return new returnType({ __from: __result });
+                            }
+                            else {
+                                return __result;
+                            }
+                        } catch (e) {
+                            continue;
                         }
                     }
                 }
@@ -280,14 +316,23 @@ function main() {
                 const args = Array.from(arguments);
                 for (let i = 0; i < methodsCount; i++) {
                     const key = "__determine_method_overload_" + methodName + "_" + i;
+                    if (!classType[key]) continue;
                     const overloadType = classType[key].apply(this, args);
                     if (overloadType) {
-                        const __result = oc[className][overloadType].apply(oc, args.map(arg => arg._overload || arg));
-                        if (returnTypeName && returnTypeName !== "void" && !isPrimitiveOrStandardOrEnum) {
-                            return new returnType({ __from: __result });
+                        const fn = oc[className] && oc[className][overloadType];
+                        if (!fn) {
+                            continue;
                         }
-                        else {
-                            return __result;
+                        try {
+                            const __result = fn.apply(oc, args.map(arg => arg._overload || arg));
+                            if (returnTypeName && returnTypeName !== "void" && !isPrimitiveOrStandardOrEnum) {
+                                return new returnType({ __from: __result });
+                            }
+                            else {
+                                return __result;
+                            }
+                        } catch (e) {
+                            continue;
                         }
                     }
                 }
@@ -315,6 +360,9 @@ function getPrimitiveFromStandardType(type: string) {
         case "Standard_Character":
             return "Number";
         case "Standard_CString":
+        case "Standard_ExtString":
+        case "Standard_WideChar":
+        case "Standard_ExtCharacter":
             return "String";
         case "Graphic3d_ZLayerId":
             return "Number";
