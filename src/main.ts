@@ -9,6 +9,7 @@ const targetProject = new Project({
         outDir: OUT_DIR,
         noEmitOnError: false,
         declaration: true,
+        stripInternal: true,
         moduleResolution: ModuleResolutionKind.NodeNext,
         module: ModuleKind.NodeNext,
         target: ScriptTarget.ES2017,
@@ -615,7 +616,8 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
             extends: baseClass,
             properties: [{
                 name: "_overload",
-                type: "any"
+                type: "any",
+                docs: ["@internal"],
             }]
         };
 
@@ -647,6 +649,7 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                 newClass.methods.push({
                     name: `__determine_ctor_overload_${newClass.name}_${i}`,
                     scope: Scope.Private,
+                    docs: ["@internal"],
                     statements: writer => {
                         if (ctor.params.length === 0) {
                             writer.writeLine(`const match = arguments.length === 0;`);
@@ -741,6 +744,7 @@ function processClasses(sourceFile: SourceFile, isPrimitiveOrStandardOrEnum: (ty
                     name: `__determine_method_overload_${baseName}_${i}`,
                     isStatic: method.isStatic,
                     scope: Scope.Private,
+                    docs: ["@internal"],
                     statements: writer => {
                         writer.writeLine(`const __oc = ${newClass.name}.prototype.getOC();`);
                         if (params.length === 0) {
