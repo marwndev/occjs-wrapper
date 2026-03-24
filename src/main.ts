@@ -266,7 +266,9 @@ function main() {
                         try {
                             const __result = fn.apply(this._overload, args.map(arg => arg._overload || arg));
                             if (returnTypeName && returnTypeName !== "void" && !isPrimitiveOrStandardOrEnum) {
-                                return new returnType({ __from: __result });
+                                const __actualName = __result?.constructor?.name?.replace(/_\\d+$/, "");
+                                const __clsType = __actualName && classRegistry.get(__actualName);
+                                return __clsType ? new __clsType({ __from: __result }) : new returnType({ __from: __result });
                             }
                             else {
                                 return __result;
@@ -327,7 +329,9 @@ function main() {
                         try {
                             const __result = fn.apply(oc, args.map(arg => arg._overload || arg));
                             if (returnTypeName && returnTypeName !== "void" && !isPrimitiveOrStandardOrEnum) {
-                                return new returnType({ __from: __result });
+                                const __actualName = __result?.constructor?.name?.replace(/_\\d+$/, "");
+                                const __clsType = __actualName && classRegistry.get(__actualName);
+                                return __clsType ? new __clsType({ __from: __result }) : new returnType({ __from: __result });
                             }
                             else {
                                 return __result;
