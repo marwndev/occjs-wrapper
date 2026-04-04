@@ -24,25 +24,53 @@ Currently the library does not handle null parameters, so if any of the paramete
 
 Please note I tested this only on a project I work on and it is working fine. I'll keep fixing bugs as I encounter them.
 
-To use this library just replace the `opencascade.js` import with `occjs-wrapper.js` in your project:
-
-```javascript
-import initOpenCascade from 'occjs-wrapper.js';
-import { gp_Pnt } from 'occjs-wrapper.js';
-
-```
-Node:
-
-```javascript
-import initOpenCascade from 'occjs-wrapper.js/dist/node.js';
-
-```
-
 ## Installation
-You can install the library using npm:
 
 ```bash
 npm install occjs-wrapper
+```
+
+## Usage
+
+### Browser (single-threaded)
+
+```javascript
+import initOpenCascade from 'occjs-wrapper';
+
+const oc = await initOpenCascade();
+```
+
+### Browser (multi-threaded)
+
+Requires `SharedArrayBuffer`, which needs COOP/COEP headers on your server.
+
+```javascript
+import initOpenCascade from 'occjs-wrapper/multi-threaded';
+
+const oc = await initOpenCascade();
+```
+
+### Node.js (single-threaded)
+
+```javascript
+import initOpenCascade from 'occjs-wrapper/node';
+
+const oc = await initOpenCascade();
+```
+
+### Node.js (multi-threaded)
+
+```javascript
+import initOpenCascade from 'occjs-wrapper/node/multi-threaded';
+
+const oc = await initOpenCascade();
+```
+
+## Importing types
+
+```typescript
+import initOpenCascade from 'occjs-wrapper';
+import { gp_Pnt } from 'occjs-wrapper';
 ```
 
 It would be cool to make this part of the original library, but it'll require some time and effort to integrate it which currently I do not have. If anyone is interested in contributing to the original library, please feel free to do so.

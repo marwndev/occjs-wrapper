@@ -9,6 +9,28 @@
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "browser": "./dist/index.js",
+            "node": "./dist/node.js",
+            "default": "./dist/index.js"
+        },
+        "./multi-threaded": {
+            "types": "./dist/index.d.ts",
+            "browser": "./dist/index.mt.js",
+            "node": "./dist/node.mt.js",
+            "default": "./dist/index.mt.js"
+        },
+        "./node": {
+            "types": "./dist/node.d.ts",
+            "default": "./dist/node.js"
+        },
+        "./node/multi-threaded": {
+            "types": "./dist/node.d.ts",
+            "default": "./dist/node.mt.js"
+        }
+    },
     "scripts": {
         "build:dev": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts",
         "build": "NODE_OPTIONS=--max-old-space-size=8000 tsx src/main.ts && npm run minify",
